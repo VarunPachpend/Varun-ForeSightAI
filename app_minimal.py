@@ -40,7 +40,7 @@ def generate_sample_data():
     # Generate sample sales data
     dates = pd.date_range(start='2020-01-01', end='2024-12-31', freq='M')
     states = ['Texas', 'California', 'Florida', 'New York', 'Illinois', 'Ohio', 'Pennsylvania', 'Georgia', 'Michigan', 'North Carolina']
-    brands = ['John Deere', 'Kubota', 'New Holland', 'Case IH', 'Massey Ferguson']
+    brands = ['John Deere', 'Kubota', 'New Holland', 'Case IH', 'Massey Ferguson', 'Mahindra']
     pto_categories = ['0<20', '20<30', '30<40', '40<50', '50<60', '60<70']
     
     data = []
@@ -169,12 +169,25 @@ def show_overview_page(data):
     """Overview dashboard page"""
     st.header("📊 Executive Overview")
     
+    # Brand filter
+    st.subheader("🔍 Filters")
+    selected_brand = st.selectbox(
+        "Select Brand",
+        ["All"] + list(data['Brand'].unique()),
+        index=0
+    )
+    
+    # Filter data based on selection
+    filtered_data = data.copy()
+    if selected_brand != "All":
+        filtered_data = filtered_data[filtered_data['Brand'] == selected_brand]
+    
     # Key metrics
-    current_data = data[data['Date'] == data['Date'].max()]
+    current_data = filtered_data[filtered_data['Date'] == filtered_data['Date'].max()]
     total_sales = current_data['Sales_Units'].sum()
     total_value = current_data['Sales_Value'].sum()
-    top_state = current_data.groupby('State')['Sales_Units'].sum().idxmax()
-    top_brand = current_data.groupby('Brand')['Sales_Units'].sum().idxmax()
+    top_state = current_data.groupby('State')['Sales_Units'].sum().idxmax() if not current_data.empty else "N/A"
+    top_brand = current_data.groupby('Brand')['Sales_Units'].sum().idxmax() if not current_data.empty else "N/A"
     
     # Metrics row
     col1, col2, col3, col4 = st.columns(4)
@@ -211,29 +224,39 @@ def show_overview_page(data):
     col1, col2 = st.columns(2)
     
     with col1:
-        fig = create_sales_chart(data, "Sales Trend (Monthly)")
+        fig = create_sales_chart(filtered_data, "Sales Trend (Monthly)")
         st.plotly_chart(fig, use_container_width=True)
     
     with col2:
-        top_states = data.groupby('State')['Sales_Units'].sum().nlargest(5)
-        fig = create_pie_chart(
-            pd.DataFrame({'State': top_states.index, 'Sales': top_states.values}),
-            'State', "Top 5 States by Sales"
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        top_states = filtered_data.groupby('State')['Sales_Units'].sum().nlargest(5)
+        if not top_states.empty:
+            top_states_df = pd.DataFrame({'State': top_states.index, 'Sales_Units': top_states.values})
+            fig = create_pie_chart(
+                top_states_df,
+                'State', "Top 5 States by Sales"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No data available for selected brand.")
     
     # Second row
     col1, col2 = st.columns(2)
     
     with col1:
-        brand_perf = data.groupby('Brand')['Sales_Units'].sum().reset_index()
-        fig = create_bar_chart(brand_perf, 'Brand', 'Sales_Units', "Brand Performance", orientation='h')
-        st.plotly_chart(fig, use_container_width=True)
+        brand_perf = filtered_data.groupby('Brand')['Sales_Units'].sum().reset_index()
+        if not brand_perf.empty:
+            fig = create_bar_chart(brand_perf, 'Brand', 'Sales_Units', "Brand Performance", orientation='h')
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No brand data available.")
     
     with col2:
-        hp_perf = data.groupby('PTO_HP_Category')['Sales_Units'].sum().reset_index()
-        fig = create_bar_chart(hp_perf, 'PTO_HP_Category', 'Sales_Units', "Sales by PTO HP Category")
-        st.plotly_chart(fig, use_container_width=True)
+        hp_perf = filtered_data.groupby('PTO_HP_Category')['Sales_Units'].sum().reset_index()
+        if not hp_perf.empty:
+            fig = create_bar_chart(hp_perf, 'PTO_HP_Category', 'Sales_Units', "Sales by PTO HP Category")
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No PTO HP category data available.")
 
 def show_forecasting_page(data):
     """Forecasting analysis page"""
@@ -340,8 +363,11 @@ def show_regional_analysis_page(data):
     
     with col2:
         state_perf = filtered_data.groupby('State')['Sales_Units'].sum().nlargest(10).reset_index()
-        fig = create_bar_chart(state_perf, 'State', 'Sales_Units', "Top 10 States by Sales", orientation='h')
-        st.plotly_chart(fig, use_container_width=True)
+        if not state_perf.empty:
+            fig = create_bar_chart(state_perf, 'State', 'Sales_Units', "Top 10 States by Sales", orientation='h')
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No data available for selected filters.")
     
     # State details
     st.subheader("📋 State Details")
