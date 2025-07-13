@@ -169,18 +169,39 @@ def show_overview_page(data):
     """Overview dashboard page"""
     st.header("📊 Executive Overview")
     
-    # Brand filter
+    # Filters
     st.subheader("🔍 Filters")
-    selected_brand = st.selectbox(
-        "Select Brand",
-        ["All"] + list(data['Brand'].unique()),
-        index=0
-    )
+    col1, col2, col3 = st.columns(3)
     
-    # Filter data based on selection
+    with col1:
+        selected_brand = st.selectbox(
+            "Select Brand",
+            ["All"] + list(data['Brand'].unique()),
+            index=0
+        )
+    
+    with col2:
+        selected_state = st.selectbox(
+            "Select State",
+            ["All"] + list(data['State'].unique()),
+            index=0
+        )
+    
+    with col3:
+        selected_pto = st.selectbox(
+            "Select PTO HP Category",
+            ["All"] + list(data['PTO_HP_Category'].unique()),
+            index=0
+        )
+    
+    # Filter data based on selections
     filtered_data = data.copy()
     if selected_brand != "All":
         filtered_data = filtered_data[filtered_data['Brand'] == selected_brand]
+    if selected_state != "All":
+        filtered_data = filtered_data[filtered_data['State'] == selected_state]
+    if selected_pto != "All":
+        filtered_data = filtered_data[filtered_data['PTO_HP_Category'] == selected_pto]
     
     # Key metrics
     current_data = filtered_data[filtered_data['Date'] == filtered_data['Date'].max()]
@@ -262,14 +283,27 @@ def show_forecasting_page(data):
     """Forecasting analysis page"""
     st.header("🔮 AI Forecasting Analysis")
     
+    # Brand filter
+    st.subheader("🔍 Filters")
+    selected_brand = st.selectbox(
+        "Select Brand",
+        ["All"] + list(data['Brand'].unique()),
+        index=0
+    )
+    
+    # Filter data based on selection
+    filtered_data = data.copy()
+    if selected_brand != "All":
+        filtered_data = filtered_data[filtered_data['Brand'] == selected_brand]
+    
     st.info("🚧 **Forecasting models (Prophet, XGBoost, LSTM) are available in the full version.** This demo shows sample forecast data.")
     
     # Generate sample forecast
-    last_date = data['Date'].max()
+    last_date = filtered_data['Date'].max()
     future_dates = pd.date_range(start=last_date + timedelta(days=1), periods=12, freq='M')
     
     # Create sample forecast
-    base_forecast = data.groupby('Date')['Sales_Units'].sum().tail(6).mean()
+    base_forecast = filtered_data.groupby('Date')['Sales_Units'].sum().tail(6).mean()
     forecast_data = []
     
     for i, date in enumerate(future_dates):
@@ -295,7 +329,7 @@ def show_forecasting_page(data):
         fig = go.Figure()
         
         # Historical data
-        historical = data.groupby('Date')['Sales_Units'].sum().reset_index()
+        historical = filtered_data.groupby('Date')['Sales_Units'].sum().reset_index()
         fig.add_trace(go.Scatter(
             x=historical['Date'],
             y=historical['Sales_Units'],
@@ -336,20 +370,30 @@ def show_regional_analysis_page(data):
     st.header("🗺️ Regional Analysis")
     
     # Filters
-    col1, col2 = st.columns(2)
+    st.subheader("🔍 Filters")
+    col1, col2, col3 = st.columns(3)
     
     with col1:
+        selected_brand = st.selectbox(
+            "Select Brand",
+            ["All"] + list(data['Brand'].unique()),
+            index=0
+        )
+    
+    with col2:
         selected_region = st.selectbox(
             "Select Region",
             ["All"] + list(data['Region'].unique()),
             index=0
         )
     
-    with col2:
+    with col3:
         timeline = st.selectbox("Timeline", ["Month", "Quarter", "Year"], index=0)
     
     # Filter data
     filtered_data = data.copy()
+    if selected_brand != "All":
+        filtered_data = filtered_data[filtered_data['Brand'] == selected_brand]
     if selected_region != "All":
         filtered_data = filtered_data[filtered_data['Region'] == selected_region]
     
@@ -448,6 +492,19 @@ def show_product_analysis_page(data):
 def show_recommendations_page(data):
     """Recommendations page"""
     st.header("💡 AI Recommendations")
+    
+    # Brand filter
+    st.subheader("🔍 Filters")
+    selected_brand = st.selectbox(
+        "Select Brand",
+        ["All"] + list(data['Brand'].unique()),
+        index=0
+    )
+    
+    # Filter data based on selection
+    filtered_data = data.copy()
+    if selected_brand != "All":
+        filtered_data = filtered_data[filtered_data['Brand'] == selected_brand]
     
     # Executive summary
     st.subheader("🎯 Executive Summary")
